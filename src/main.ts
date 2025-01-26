@@ -10,13 +10,7 @@ import { Observable } from "rxjs";
 const USE_WORKER = true;
 
 const [state$, actions, actions$] = USE_WORKER
-  ? fromWorker(
-      new Worker(
-        new URL("./Rxtoggle.worker.ts", import.meta.url),
-
-        { type: "module" }
-      )
-    )
+  ? fromWorker("./Rxtoggle.worker.ts")
   : RxToggle();
 
 state$.subscribe((state) => {

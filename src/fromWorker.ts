@@ -15,7 +15,12 @@ interface ActionMessage {
 
 type FromWorkerMessage<T> = StateChangeMessage<T> | ActionMessage;
 
-export const fromWorker = <State, Actions>(worker: Worker) => {
+export const fromWorker = <State, Actions>(workerUrl: string) => {
+  const worker = new Worker(
+    new URL(workerUrl, import.meta.url),
+
+    { type: "module" }
+  );
   const state$ = fromEvent(worker, "message").pipe(
     filter(
       (event) =>
