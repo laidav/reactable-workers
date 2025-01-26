@@ -1,13 +1,15 @@
 import "./style.css";
+import { Action } from "@reactables/core";
 import typescriptLogo from "./typescript.svg";
 import viteLogo from "/vite.svg";
 import { fromWorker } from "./fromWorker.ts";
 import { RxToggle } from "./RxToggle.ts";
 import { setupCounter } from "./counter.ts";
+import { Observable } from "rxjs";
 
 const USE_WORKER = true;
 
-const [state$, actions] = USE_WORKER
+const [state$, actions, actions$] = USE_WORKER
   ? fromWorker(
       new Worker(
         new URL("./Rxtoggle.worker.ts", import.meta.url),
@@ -19,6 +21,10 @@ const [state$, actions] = USE_WORKER
 
 state$.subscribe((state) => {
   console.log(state);
+});
+
+(actions$ as Observable<Action<unknown>>).subscribe((action) => {
+  console.log(action);
 });
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `

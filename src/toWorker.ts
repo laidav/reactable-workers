@@ -50,7 +50,7 @@ export const toWorker = <
         if (actions$) {
           subscription.add(
             actions$.subscribe((action) => {
-              postMessage({ type: "action", action });
+              postMessage({ type: FromWorkerMessageTypes.Action, action });
             })
           );
         }
