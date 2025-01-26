@@ -20,7 +20,9 @@ const [state$, actions, actions$] = USE_WORKER
   : RxToggle();
 
 state$.subscribe((state) => {
-  console.log(state);
+  document.querySelector<HTMLButtonElement>(
+    "#toggle"
+  )!.innerHTML = `Toggle is: ${state ? "on" : "off"}`;
 });
 
 (actions$ as Observable<Action<unknown>>).subscribe((action) => {
