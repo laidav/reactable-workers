@@ -43,7 +43,7 @@ export const toWorker = <
         const [state$, , actions$] = reactable;
 
         subscription = state$.subscribe((state) => {
-          console.log("off the thread");
+          console.log(state, "off the thread");
           postMessage({ type: FromWorkerMessageTypes.State, state });
         });
 
