@@ -1,4 +1,4 @@
-import { Reactable } from "@reactables/core";
+import { Reactable, ActionMap } from "@reactables/core";
 import { Subscription } from "rxjs";
 
 export enum ToWorkerMessageTypes {
@@ -20,6 +20,8 @@ interface ActionMessage<Actions> {
   type: ToWorkerMessageTypes.Action;
   action: { type: keyof Actions; payload: unknown };
 }
+
+type ActionFunc = (payload?: unknown) => void;
 
 export const toWorker = <
   State,
@@ -59,7 +61,21 @@ export const toWorker = <
       case ToWorkerMessageTypes.Action:
         const [, actions] = reactable;
         const { type, payload } = event.data.action;
-        (actions[type] as (payload?: unknown) => void)(payload);
+        const splitKey = (type as string).split("~");
+
+        let action: any = actions;
+
+        try {
+          for (let i = 0; i < splitKey.length; i++) {
+            action = action[splitKey[i]];
+          }
+        } catch {}
+
+        if (!action) {
+          throw "Action not found";
+        }
+
+        action(payload);
         break;
       default:
     }
