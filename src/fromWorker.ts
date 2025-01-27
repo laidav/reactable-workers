@@ -30,7 +30,8 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
   const state$ = fromEvent(worker, "message").pipe(
     tap((event) => {
       /**
-       * Once the Reactable and Worker is initialized, it will broadcast back
+       * Using tap here to set up an ActionMap for the client side Reactable
+       * Once the Reactable on the worker side is initialized, it will broadcast back
        * the ActionMap schema so we can create an ActionMap here on the client side
        */
 
@@ -46,9 +47,11 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
           dest: any,
           stack: string[] = []
         ) => {
+          /**
+           * Recursively go through the ActionsSchema
+           */
           for (let key in source) {
             if (typeof source[key] === "object" && source[key] !== null) {
-              console.log(source[key]);
               dest[key] = source[key] as any;
               assignActions(
                 source[key] as ActionsSchema,
@@ -56,6 +59,9 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
                 stack.concat(key)
               );
             } else {
+              /**
+               * Assigning the action function to the ActionMap
+               */
               dest[key] = (payload?: unknown) => {
                 worker.postMessage({
                   type: ToWorkerMessageTypes.Action,
@@ -82,6 +88,9 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
     )
   );
 
+  /**
+   * Rebroadcasting Actions that were processed in the reactable
+   */
   const actions$ = fromEvent(worker, "message").pipe(
     filter(
       (event) =>

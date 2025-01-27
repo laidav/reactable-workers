@@ -40,6 +40,9 @@ export const toWorker = <
 
   onmessage = (event: MessageEvent<ActionMessage<Actions> | InitMessage>) => {
     switch (event.data.type) {
+      /**
+       * Initialization
+       */
       case ToWorkerMessageTypes.Init:
         reactable = RxFactory({
           ...workerDependencies,
@@ -52,7 +55,7 @@ export const toWorker = <
          * Create an actions schema to broadcast to the client -
          * so they can create an ActionMap.
          *
-         * We will recursively loop throuugh the ActionMap and assign all
+         * We will recursively loop through the ActionMap and assign all
          * leaves null so it can be serialized and sent to client.
          */
 
@@ -99,6 +102,10 @@ export const toWorker = <
         }
 
         break;
+      /**
+       * Handling Client Actions
+       * - find the corresponding action and invoke it
+       */
       case ToWorkerMessageTypes.Action:
         const { type, payload } = event.data.action;
         const splitKey = (type as string).split("~");
