@@ -7,10 +7,12 @@ export enum ToWorkerMessageTypes {
 }
 
 export enum FromWorkerMessageTypes {
+  Initialized = "Initialized",
   State = "State",
   Action = "Action",
 }
 
+// To Worker Messages
 interface InitMessage {
   type: ToWorkerMessageTypes.Init;
   props: { [key: string]: unknown };
@@ -20,8 +22,6 @@ interface ActionMessage<Actions> {
   type: ToWorkerMessageTypes.Action;
   action: { type: keyof Actions; payload: unknown };
 }
-
-type ActionFunc = (payload?: unknown) => void;
 
 export const toWorker = <
   State,
@@ -42,28 +42,34 @@ export const toWorker = <
           ...event.data.props,
         } as Dependencies);
 
-        const [state$, , actions$] = reactable;
+        const [state$, actions, actions$] = reactable;
+        postMessage({ type: FromWorkerMessageTypes.Initialized });
 
         subscription = state$.subscribe((state) => {
           console.log(state, "off the thread");
-          postMessage({ type: FromWorkerMessageTypes.State, state });
+          postMessage({
+            type: FromWorkerMessageTypes.State,
+            state,
+          });
         });
 
         if (actions$) {
           subscription.add(
             actions$.subscribe((action) => {
-              postMessage({ type: FromWorkerMessageTypes.Action, action });
+              postMessage({
+                type: FromWorkerMessageTypes.Action,
+                action,
+              });
             })
           );
         }
 
         break;
       case ToWorkerMessageTypes.Action:
-        const [, actions] = reactable;
         const { type, payload } = event.data.action;
         const splitKey = (type as string).split("~");
 
-        let action: any = actions;
+        let action: any = reactable[1];
 
         try {
           for (let i = 0; i < splitKey.length; i++) {

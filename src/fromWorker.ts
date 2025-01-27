@@ -1,5 +1,5 @@
 import { fromEvent } from "rxjs";
-import { map, filter } from "rxjs/operators";
+import { map, filter, tap } from "rxjs/operators";
 import { Reactable, Action } from "@reactables/core";
 import { FromWorkerMessageTypes, ToWorkerMessageTypes } from "./toWorker";
 
@@ -13,10 +13,24 @@ interface ActionMessage {
   action: Action<unknown>;
 }
 
+interface InitializedMessage {
+  type: FromWorkerMessageTypes.Initialized;
+}
+
 type FromWorkerMessage<T> = StateChangeMessage<T> | ActionMessage;
 
 export const fromWorker = <State, Actions>(worker: Worker) => {
+  const actions = {} as Actions;
+
   const state$ = fromEvent(worker, "message").pipe(
+    tap((event) => {
+      if (
+        (event as MessageEvent<InitializedMessage>).data.type ===
+        FromWorkerMessageTypes.Initialized
+      ) {
+        console.log((event as MessageEvent<InitializedMessage>).data);
+      }
+    }),
     filter(
       (event) =>
         (event as MessageEvent<FromWorkerMessage<State>>).data.type ===
@@ -35,15 +49,6 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
     ),
     map((event) => (event as MessageEvent<ActionMessage>).data.action)
   );
-
-  const actions = {
-    toggle: (payload?: unknown) => {
-      worker.postMessage({
-        type: ToWorkerMessageTypes.Action,
-        action: { type: "toggle", payload },
-      });
-    },
-  } as Actions;
 
   worker.postMessage({ type: ToWorkerMessageTypes.Init });
 
