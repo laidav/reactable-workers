@@ -1,10 +1,12 @@
-import { fromEvent } from "rxjs";
+import { fromEvent, Observable, merge } from "rxjs";
 import { map, filter, tap } from "rxjs/operators";
 import { Reactable, Action, ActionMap } from "@reactables/core";
 import {
   FromWorkerMessageTypes,
   ToWorkerMessageTypes,
   ActionsSchema,
+  SourceMessage,
+  InitMessage,
 } from "./toWorker";
 
 interface StateChangeMessage<State> {
@@ -24,9 +26,25 @@ interface InitializedMessage {
 
 type FromWorkerMessage<T> = StateChangeMessage<T> | ActionMessage;
 
-export const fromWorker = <State, Actions>(worker: Worker) => {
+export const fromWorker = <State, Actions>(
+  worker: Worker,
+  { sources }: { sources: Observable<Action<unknown>>[] }
+) => {
+  /**
+   * Handle Sources
+   */
+  const sourcesSubscription = merge(...sources).subscribe((action) => {
+    worker.postMessage({
+      type: ToWorkerMessageTypes.Source,
+      action,
+    } as SourceMessage);
+  });
+
   const actions = {} as Actions;
 
+  /**
+   * Set up observable to listen for state changes emitted by worker Reactable
+   */
   const state$ = fromEvent(worker, "message").pipe(
     tap((event) => {
       /**
@@ -47,9 +65,7 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
           dest: any,
           stack: string[] = []
         ) => {
-          /**
-           * Recursively go through the ActionsSchema
-           */
+          // Recursively go through the ActionsSchema
           for (let key in source) {
             if (typeof source[key] === "object" && source[key] !== null) {
               dest[key] = source[key] as any;
@@ -63,6 +79,7 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
                * Assigning the action function to the ActionMap
                */
               dest[key] = (payload?: unknown) => {
+                // Notify worker of action invoked
                 worker.postMessage({
                   type: ToWorkerMessageTypes.Action,
                   action: {
@@ -89,7 +106,7 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
   );
 
   /**
-   * Rebroadcasting Actions that were processed in the reactable
+   * Set up observable to rebroadcast actions processed by the worker Reactable
    */
   const actions$ = fromEvent(worker, "message").pipe(
     filter(
@@ -100,7 +117,10 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
     map((event) => (event as MessageEvent<ActionMessage>).data.action)
   );
 
-  worker.postMessage({ type: ToWorkerMessageTypes.Init });
+  /**
+   * Notify the worker initialize the Reactable on worker side;
+   */
+  worker.postMessage({ type: ToWorkerMessageTypes.Init } as InitMessage);
 
   return [state$, actions, actions$] as Reactable<State, Actions>;
 };

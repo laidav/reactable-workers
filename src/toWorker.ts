@@ -1,9 +1,10 @@
-import { Reactable, ActionMap } from "@reactables/core";
-import { Subscription } from "rxjs";
+import { Reactable, ActionMap, Action } from "@reactables/core";
+import { Observable, Subject, Subscription } from "rxjs";
 
 export enum ToWorkerMessageTypes {
   Init = "Init",
   Action = "Action",
+  Source = "Source",
 }
 
 export enum FromWorkerMessageTypes {
@@ -13,14 +14,19 @@ export enum FromWorkerMessageTypes {
 }
 
 // To Worker Messages
-interface InitMessage {
+export interface InitMessage {
   type: ToWorkerMessageTypes.Init;
   props: { [key: string]: unknown };
 }
 
-interface ActionMessage<Actions> {
+export interface ActionMessage {
   type: ToWorkerMessageTypes.Action;
-  action: { type: keyof Actions; payload: unknown };
+  action: { type: string; payload: unknown };
+}
+
+export interface SourceMessage {
+  type: ToWorkerMessageTypes.Source;
+  action: { type: string; payload: unknown };
 }
 
 export interface ActionsSchema {
@@ -30,7 +36,7 @@ export interface ActionsSchema {
 export const toWorker = <
   State,
   Actions,
-  Dependencies extends { [key: string]: unknown } // Props and Deps
+  Dependencies extends { [key: string]: unknown } // Props, Dependencies, Sources
 >(
   RxFactory: (deps: Dependencies) => Reactable<State, Actions>,
   workerDependencies?: { [key: string]: unknown }
@@ -38,7 +44,15 @@ export const toWorker = <
   let reactable: Reactable<State, Actions>;
   let subscription: Subscription;
 
-  onmessage = (event: MessageEvent<ActionMessage<Actions> | InitMessage>) => {
+  /**
+   * Subject to listen for source actions from the client and emit it to
+   * the Worker Reactable here
+   */
+  const sources$ = new Subject<Action<unknown>>();
+
+  onmessage = (
+    event: MessageEvent<ActionMessage | InitMessage | SourceMessage>
+  ) => {
     switch (event.data.type) {
       /**
        * Initialization
@@ -47,7 +61,8 @@ export const toWorker = <
         reactable = RxFactory({
           ...workerDependencies,
           ...event.data.props,
-        } as Dependencies);
+          sources: [sources$.asObservable()],
+        } as Dependencies & { sources: Observable<Action<unknown>>[] });
 
         const [state$, actions, actions$] = reactable;
 
@@ -123,6 +138,9 @@ export const toWorker = <
         }
 
         action(payload);
+        break;
+      case ToWorkerMessageTypes.Source:
+        sources$.next(event.data.action);
         break;
       default:
     }
