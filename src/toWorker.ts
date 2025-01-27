@@ -23,6 +23,10 @@ interface ActionMessage<Actions> {
   action: { type: keyof Actions; payload: unknown };
 }
 
+export interface ActionsSchema {
+  [key: string]: null | ActionsSchema;
+}
+
 export const toWorker = <
   State,
   Actions,
@@ -43,7 +47,37 @@ export const toWorker = <
         } as Dependencies);
 
         const [state$, actions, actions$] = reactable;
-        postMessage({ type: FromWorkerMessageTypes.Initialized });
+
+        /**
+         * Create an actions schema to broadcast to the client -
+         * so they can create an ActionMap.
+         *
+         * We will recursively loop throuugh the ActionMap and assign all
+         * leaves null so it can be serialized and sent to client.
+         */
+
+        const actionsSchema: ActionsSchema = {};
+
+        const assignNull = (source: ActionMap, dest: ActionsSchema) => {
+          for (let key in source) {
+            if (
+              typeof source[key] === "object" &&
+              typeof source[key] !== "function"
+            ) {
+              dest[key] = source[key];
+              assignNull(source[key] as ActionMap, dest[key]);
+            } else {
+              dest[key] = null;
+            }
+          }
+        };
+
+        assignNull(actions as ActionMap, actionsSchema);
+
+        postMessage({
+          type: FromWorkerMessageTypes.Initialized,
+          actionsSchema,
+        });
 
         subscription = state$.subscribe((state) => {
           console.log(state, "off the thread");
