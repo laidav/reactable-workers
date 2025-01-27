@@ -28,7 +28,9 @@ type FromWorkerMessage<T> = StateChangeMessage<T> | ActionMessage;
 
 export const fromWorker = <State, Actions>(
   worker: Worker,
-  { sources }: { sources: Observable<Action<unknown>>[] }
+  { sources = [] }: { sources: Observable<Action<unknown>>[] } = {
+    sources: [],
+  }
 ) => {
   /**
    * Handle Sources

@@ -13,9 +13,12 @@ const [state$, actions, actions$] = USE_WORKER
         new URL("./Rxtoggle.worker.ts", import.meta.url),
 
         { type: "module" }
-      )
+      ),
+      {
+        sources: [],
+      }
     )
-  : RxToggle();
+  : RxToggle({ sources: [] });
 
 state$.subscribe((state) => {
   document.querySelector<HTMLButtonElement>(
