@@ -3,14 +3,14 @@ import { Action } from "@reactables/core";
 import typescriptLogo from "./typescript.svg";
 import viteLogo from "/vite.svg";
 import { fromWorker } from "./fromWorker.ts";
-import { RxToggle } from "./RxToggle.ts";
+import { RxToggle, ToggleState, ToggleActions } from "./RxToggle.ts";
 import { setupCounter } from "./counter.ts";
 import { Observable } from "rxjs";
 
 const USE_WORKER = true;
 
 const [state$, actions, actions$] = USE_WORKER
-  ? fromWorker(
+  ? fromWorker<ToggleState, ToggleActions>(
       new Worker(
         new URL("./Rxtoggle.worker.ts", import.meta.url),
 

@@ -1,6 +1,6 @@
 import { fromEvent } from "rxjs";
 import { map, filter, tap } from "rxjs/operators";
-import { Reactable, Action } from "@reactables/core";
+import { Reactable, Action, ActionMap } from "@reactables/core";
 import {
   FromWorkerMessageTypes,
   ToWorkerMessageTypes,
@@ -19,7 +19,7 @@ interface ActionMessage {
 
 interface InitializedMessage {
   type: FromWorkerMessageTypes.Initialized;
-  actionSchema: ActionsSchema;
+  actionsSchema: ActionsSchema;
 }
 
 type FromWorkerMessage<T> = StateChangeMessage<T> | ActionMessage;
@@ -38,7 +38,38 @@ export const fromWorker = <State, Actions>(worker: Worker) => {
         (event as MessageEvent<InitializedMessage>).data.type ===
         FromWorkerMessageTypes.Initialized
       ) {
-        console.log((event as MessageEvent<InitializedMessage>).data);
+        const { actionsSchema } = (event as MessageEvent<InitializedMessage>)
+          .data;
+
+        const assignActions = (
+          source: ActionsSchema,
+          dest: any,
+          stack: string[] = []
+        ) => {
+          for (let key in source) {
+            if (typeof source[key] === "object" && source[key] !== null) {
+              console.log(source[key]);
+              dest[key] = source[key] as any;
+              assignActions(
+                source[key] as ActionsSchema,
+                dest[key] as unknown as ActionMap,
+                stack.concat(key)
+              );
+            } else {
+              dest[key] = (payload?: unknown) => {
+                worker.postMessage({
+                  type: ToWorkerMessageTypes.Action,
+                  action: {
+                    type: stack.concat(key).join("~"),
+                    payload,
+                  },
+                });
+              };
+            }
+          }
+        };
+
+        assignActions(actionsSchema, actions);
       }
     }),
     filter(
