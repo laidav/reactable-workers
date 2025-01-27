@@ -1,5 +1,5 @@
 import { Reactable, ActionMap, Action } from "@reactables/core";
-import { Observable, Subject, Subscription } from "rxjs";
+import { Observable, ReplaySubject, Subscription } from "rxjs";
 
 export enum ToWorkerMessageTypes {
   Init = "Init",
@@ -48,7 +48,7 @@ export const toWorker = <
    * Subject to listen for source actions from the client and emit it to
    * the Worker Reactable here
    */
-  const sources$ = new Subject<Action<unknown>>();
+  const sources$ = new ReplaySubject<Action<unknown>>(1);
 
   onmessage = (
     event: MessageEvent<ActionMessage | InitMessage | SourceMessage>
