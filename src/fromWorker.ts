@@ -1,6 +1,6 @@
-import { fromEvent, Observable, merge } from "rxjs";
+import { fromEvent, merge } from "rxjs";
 import { map, filter, tap } from "rxjs/operators";
-import { Reactable, Action, ActionMap } from "@reactables/core";
+import { Reactable, ActionMap } from "@reactables/core";
 import {
   FromWorkerMessageTypes,
   ToWorkerMessageTypes,
@@ -11,18 +11,17 @@ import {
   FromWorkerMessage,
   StateChangeMessage,
   FromWorkerActionMessage,
+  SourcesAndProps,
 } from "./models";
 
 export const fromWorker = <State, Actions>(
   worker: Worker,
-  { sources = [] }: { sources: Observable<Action<unknown>>[] } = {
-    sources: [],
-  }
+  config?: SourcesAndProps
 ) => {
   /**
    * Handle Sources
    */
-  merge(...sources).subscribe((action) => {
+  merge(...(config?.sources || [])).subscribe((action) => {
     worker.postMessage({
       type: ToWorkerMessageTypes.Source,
       action,
@@ -111,6 +110,7 @@ export const fromWorker = <State, Actions>(
    */
   worker.postMessage({
     type: ToWorkerMessageTypes.Init,
+    props: config?.props,
   } as ToWorkerInitMessage);
 
   return [state$, actions, actions$] as Reactable<State, Actions>;
