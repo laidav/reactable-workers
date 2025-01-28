@@ -1,12 +1,18 @@
 /**
- * Messages to the worker
+ * MESSAGES TO THE WORKER
  */
 export enum ToWorkerMessageTypes {
   Init = "Init",
   Action = "Action",
   Source = "Source",
 }
-export interface InitMessage {
+
+export type ToWorkerMessage =
+  | ToWorkerInitMessage
+  | ToWorkerActionMessage
+  | ToWorkerSourceMessage;
+
+export interface ToWorkerInitMessage {
   type: ToWorkerMessageTypes.Init;
   props: { [key: string]: unknown };
 }
@@ -16,14 +22,20 @@ export interface ToWorkerActionMessage {
   action: { type: string; payload: unknown };
 }
 
-export interface SourceMessage {
+export interface ToWorkerSourceMessage {
   type: ToWorkerMessageTypes.Source;
   action: { type: string; payload: unknown };
 }
 
 /**
- * Messages from worker
+ * MESSAGES FROM WORKER
  */
+export enum FromWorkerMessageTypes {
+  Initialized = "Initialized",
+  State = "State",
+  Action = "Action",
+}
+
 export interface StateChangeMessage<State> {
   type: FromWorkerMessageTypes.State;
   state: State;
@@ -31,13 +43,8 @@ export interface StateChangeMessage<State> {
 
 export type FromWorkerMessage<T> =
   | StateChangeMessage<T>
-  | FromWorkerActionMessage;
-
-export enum FromWorkerMessageTypes {
-  Initialized = "Initialized",
-  State = "State",
-  Action = "Action",
-}
+  | FromWorkerActionMessage
+  | InitializedMessage;
 
 export interface FromWorkerActionMessage {
   type: FromWorkerMessageTypes.Action;

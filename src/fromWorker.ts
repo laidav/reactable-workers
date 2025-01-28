@@ -5,8 +5,8 @@ import {
   FromWorkerMessageTypes,
   ToWorkerMessageTypes,
   ActionsSchema,
-  SourceMessage,
-  InitMessage,
+  ToWorkerSourceMessage,
+  ToWorkerInitMessage,
   InitializedMessage,
   FromWorkerMessage,
   StateChangeMessage,
@@ -26,7 +26,7 @@ export const fromWorker = <State, Actions>(
     worker.postMessage({
       type: ToWorkerMessageTypes.Source,
       action,
-    } as SourceMessage);
+    } as ToWorkerSourceMessage);
   });
 
   const actions = {} as Actions;
@@ -109,7 +109,9 @@ export const fromWorker = <State, Actions>(
   /**
    * Notify the worker initialize the Reactable on worker side;
    */
-  worker.postMessage({ type: ToWorkerMessageTypes.Init } as InitMessage);
+  worker.postMessage({
+    type: ToWorkerMessageTypes.Init,
+  } as ToWorkerInitMessage);
 
   return [state$, actions, actions$] as Reactable<State, Actions>;
 };

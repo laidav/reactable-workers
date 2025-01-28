@@ -1,9 +1,7 @@
 import { Reactable, ActionMap, Action } from "@reactables/core";
 import { Observable, ReplaySubject, Subscription } from "rxjs";
 import {
-  ToWorkerActionMessage,
-  InitMessage,
-  SourceMessage,
+  ToWorkerMessage,
   ToWorkerMessageTypes,
   FromWorkerMessageTypes,
   ActionsSchema,
@@ -26,9 +24,7 @@ export const toWorker = <
    */
   const sources$ = new ReplaySubject<Action<unknown>>(1);
 
-  onmessage = (
-    event: MessageEvent<ToWorkerActionMessage | InitMessage | SourceMessage>
-  ) => {
+  onmessage = (event: MessageEvent<ToWorkerMessage>) => {
     switch (event.data.type) {
       /**
        * Initialization
