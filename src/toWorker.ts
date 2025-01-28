@@ -1,37 +1,13 @@
 import { Reactable, ActionMap, Action } from "@reactables/core";
 import { Observable, ReplaySubject, Subscription } from "rxjs";
-
-export enum ToWorkerMessageTypes {
-  Init = "Init",
-  Action = "Action",
-  Source = "Source",
-}
-
-export enum FromWorkerMessageTypes {
-  Initialized = "Initialized",
-  State = "State",
-  Action = "Action",
-}
-
-// To Worker Messages
-export interface InitMessage {
-  type: ToWorkerMessageTypes.Init;
-  props: { [key: string]: unknown };
-}
-
-export interface ActionMessage {
-  type: ToWorkerMessageTypes.Action;
-  action: { type: string; payload: unknown };
-}
-
-export interface SourceMessage {
-  type: ToWorkerMessageTypes.Source;
-  action: { type: string; payload: unknown };
-}
-
-export interface ActionsSchema {
-  [key: string]: null | ActionsSchema;
-}
+import {
+  ToWorkerActionMessage,
+  InitMessage,
+  SourceMessage,
+  ToWorkerMessageTypes,
+  FromWorkerMessageTypes,
+  ActionsSchema,
+} from "./models";
 
 export const toWorker = <
   State,
@@ -51,7 +27,7 @@ export const toWorker = <
   const sources$ = new ReplaySubject<Action<unknown>>(1);
 
   onmessage = (
-    event: MessageEvent<ActionMessage | InitMessage | SourceMessage>
+    event: MessageEvent<ToWorkerActionMessage | InitMessage | SourceMessage>
   ) => {
     switch (event.data.type) {
       /**

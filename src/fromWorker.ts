@@ -7,24 +7,11 @@ import {
   ActionsSchema,
   SourceMessage,
   InitMessage,
-} from "./toWorker";
-
-interface StateChangeMessage<State> {
-  type: FromWorkerMessageTypes.State;
-  state: State;
-}
-
-interface ActionMessage {
-  type: FromWorkerMessageTypes.Action;
-  action: Action<unknown>;
-}
-
-interface InitializedMessage {
-  type: FromWorkerMessageTypes.Initialized;
-  actionsSchema: ActionsSchema;
-}
-
-type FromWorkerMessage<T> = StateChangeMessage<T> | ActionMessage;
+  InitializedMessage,
+  FromWorkerMessage,
+  StateChangeMessage,
+  FromWorkerActionMessage,
+} from "./models";
 
 export const fromWorker = <State, Actions>(
   worker: Worker,
@@ -116,7 +103,7 @@ export const fromWorker = <State, Actions>(
         (event as MessageEvent<FromWorkerMessage<State>>).data.type ===
         FromWorkerMessageTypes.Action
     ),
-    map((event) => (event as MessageEvent<ActionMessage>).data.action)
+    map((event) => (event as MessageEvent<FromWorkerActionMessage>).data.action)
   );
 
   /**
