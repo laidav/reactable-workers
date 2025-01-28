@@ -2,7 +2,7 @@ import { Reactable, ActionMap, Action } from "@reactables/core";
 import { ReplaySubject, Subscription } from "rxjs";
 import {
   ReactableFactory,
-  RxConfigWithDeps,
+  RxFactoryConfig,
   ToWorkerMessage,
   ToWorkerMessageTypes,
   FromWorkerMessageTypes,
@@ -11,7 +11,7 @@ import {
 
 export const toWorker = <State, Actions>(
   RxFactory: ReactableFactory<State, Actions>,
-  config?: RxConfigWithDeps<State>
+  config?: RxFactoryConfig<State>
 ): void => {
   let reactable: Reactable<State, Actions>;
   let subscription: Subscription;

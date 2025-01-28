@@ -1,14 +1,14 @@
 import { Reactable, Action } from "@reactables/core";
 import { Observable } from "rxjs";
 
-export interface RxConfigWithDeps<T = undefined> {
+export interface RxFactoryConfig<T = undefined> {
   deps?: Record<string, unknown>;
   props?: Record<string, unknown>;
   sources?: Observable<Action<unknown>>[];
   reducers?: Record<string, (state: T, action?: Action<unknown>) => T>;
 }
 export type ReactableFactory<State, Actions> = (
-  config?: RxConfigWithDeps<State>
+  config?: RxFactoryConfig<State>
 ) => Reactable<State, Actions>;
 /**
  * MESSAGES TO THE WORKER
