@@ -1,6 +1,5 @@
 import "./style.css";
 import { of } from "rxjs";
-import { delay } from "rxjs/operators";
 import { Action } from "@reactables/core";
 import { fromWorker } from "./fromWorker.ts";
 import { RxToggle, ToggleState, ToggleActions } from "./RxToggle.ts";
@@ -20,7 +19,7 @@ const [state$, actions, actions$] = USE_WORKER
         sources: [of({ type: "toggle" })],
       }
     )
-  : RxToggle({ sources: [] });
+  : RxToggle({ sources: [of({ type: "toggle" })] });
 
 state$.subscribe((state) => {
   document.querySelector<HTMLButtonElement>(

@@ -22,7 +22,7 @@ export const fromWorker = <State, Actions>(
   /**
    * Handle Sources
    */
-  const sourcesSubscription = merge(...sources).subscribe((action) => {
+  merge(...sources).subscribe((action) => {
     worker.postMessage({
       type: ToWorkerMessageTypes.Source,
       action,
