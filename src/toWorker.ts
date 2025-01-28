@@ -1,19 +1,17 @@
 import { Reactable, ActionMap, Action } from "@reactables/core";
-import { Observable, ReplaySubject, Subscription } from "rxjs";
+import { ReplaySubject, Subscription } from "rxjs";
 import {
+  ReactableFactory,
+  RxConfigWithDeps,
   ToWorkerMessage,
   ToWorkerMessageTypes,
   FromWorkerMessageTypes,
   ActionsSchema,
 } from "./models";
 
-export const toWorker = <
-  State,
-  Actions,
-  Dependencies extends { [key: string]: unknown } // Props, Dependencies, Sources
->(
-  RxFactory: (deps: Dependencies) => Reactable<State, Actions>,
-  workerDependencies?: { [key: string]: unknown }
+export const toWorker = <State, Actions>(
+  RxFactory: ReactableFactory<State, Actions>,
+  config?: RxConfigWithDeps<State>
 ): void => {
   let reactable: Reactable<State, Actions>;
   let subscription: Subscription;
@@ -31,10 +29,14 @@ export const toWorker = <
        */
       case ToWorkerMessageTypes.Init:
         reactable = RxFactory({
-          ...workerDependencies,
-          ...event.data.props,
+          deps: { ...config?.deps },
+          props: {
+            ...config?.props,
+            ...event.data.props,
+          },
           sources: [sources$.asObservable()],
-        } as Dependencies & { sources: Observable<Action<unknown>>[] });
+          reducers: { ...config?.reducers },
+        });
 
         const [state$, actions, actions$] = reactable;
 
