@@ -1,5 +1,5 @@
-import { fromEvent, merge } from "rxjs";
-import { map, filter, tap } from "rxjs/operators";
+import { fromEvent, merge, Subject } from "rxjs";
+import { map, filter, tap, takeUntil } from "rxjs/operators";
 import { Reactable, ActionMap } from "@reactables/core";
 import {
   FromWorkerMessageTypes,
@@ -18,15 +18,19 @@ export const fromWorker = <State, Actions>(
   worker: Worker,
   config?: SourcesAndProps
 ) => {
+  const destroy$ = new Subject<void>();
+
   /**
    * Handle Sources
    */
-  merge(...(config?.sources || [])).subscribe((action) => {
-    worker.postMessage({
-      type: ToWorkerMessageTypes.Source,
-      action,
-    } as ToWorkerSourceMessage);
-  });
+  merge(...(config?.sources || []))
+    .pipe(takeUntil(destroy$))
+    .subscribe((action) => {
+      worker.postMessage({
+        type: ToWorkerMessageTypes.Source,
+        action,
+      } as ToWorkerSourceMessage);
+    });
 
   const actions = {} as Actions;
 
@@ -75,6 +79,12 @@ export const fromWorker = <State, Actions>(
                     payload,
                   },
                 });
+
+                if (key === "destroy") {
+                  worker.terminate();
+                  destroy$.next();
+                  destroy$.complete();
+                }
               };
             }
           }

@@ -1,5 +1,6 @@
 import { Reactable, ActionMap, Action } from "@reactables/core";
-import { ReplaySubject, Subscription } from "rxjs";
+import { ReplaySubject, Subscription, Subject } from "rxjs";
+import { takeUntil } from "rxjs/operators";
 import {
   ReactableFactory,
   RxFactoryConfig,
@@ -14,7 +15,8 @@ export const toWorker = <State, Actions>(
   config?: RxFactoryConfig<State>
 ): void => {
   let reactable: Reactable<State, Actions>;
-  let subscription: Subscription;
+
+  const destroy$ = new Subject<void>();
 
   /**
    * Subject to listen for source actions from the client and emit it to
@@ -42,14 +44,19 @@ export const toWorker = <State, Actions>(
 
         /**
          * Create an actions schema to broadcast to the client -
-         * so they can create an ActionMap.
-         *
-         * We will recursively loop through the ActionMap and assign all
+         * so they can create an ActionMap on their end.
+         */
+        const actionsSchema: ActionsSchema = {
+          /**
+           * Ensure a destroy action will be added so client can
+           * invoke it to clean up subscriptions on teardown
+           */
+          destroy: null,
+        };
+
+        /* We will recursively loop through the ActionMap and assign all
          * leaves null so it can be serialized and sent to client.
          */
-
-        const actionsSchema: ActionsSchema = {};
-
         const assignNull = (source: ActionMap, dest: ActionsSchema) => {
           for (let key in source) {
             if (
@@ -71,7 +78,7 @@ export const toWorker = <State, Actions>(
           actionsSchema,
         });
 
-        subscription = state$.subscribe((state) => {
+        state$.pipe(takeUntil(destroy$)).subscribe((state) => {
           console.log(state, "off the thread");
           postMessage({
             type: FromWorkerMessageTypes.State,
@@ -80,14 +87,12 @@ export const toWorker = <State, Actions>(
         });
 
         if (actions$) {
-          subscription.add(
-            actions$.subscribe((action) => {
-              postMessage({
-                type: FromWorkerMessageTypes.Action,
-                action,
-              });
-            })
-          );
+          actions$.pipe(takeUntil(destroy$)).subscribe((action) => {
+            postMessage({
+              type: FromWorkerMessageTypes.Action,
+              action,
+            });
+          });
         }
 
         break;
@@ -107,11 +112,22 @@ export const toWorker = <State, Actions>(
           }
         } catch {}
 
-        if (!action) {
+        /**
+         * For all actions other than destroy, if we don't find the action
+         * throw an error
+         */
+        if (!action && type !== "destroy") {
           throw "Action not found";
         }
 
-        action(payload);
+        // If the action exists, invoke it
+        action && action(payload);
+
+        // If it is a destroy action clean up subscriptions
+        if (type === "destroy") {
+          destroy$.next();
+          destroy$.complete();
+        }
         break;
       case ToWorkerMessageTypes.Source:
         sources$.next(event.data.action);
